@@ -158,12 +158,6 @@ app.UseAuthentication();
 
 app.UseAuthorization();
 
-//setting authorization middleware
-//app.UseAuthorizationMiddleware();
-
-
-
-
 app.MapControllers();
 
 app.Run();
