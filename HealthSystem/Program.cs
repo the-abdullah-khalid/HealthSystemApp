@@ -1,6 +1,5 @@
 using HealthSystemApp;
 using HealthSystemApp.CustomActionFilters.Authorization;
-using HealthSystemApp.CustomMiddlewares.Authorization;
 using HealthSystemApp.Data;
 using HealthSystemApp.Interfaces;
 using HealthSystemApp.Models.Domain;
@@ -10,7 +9,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Migrations;
-using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
