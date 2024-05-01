@@ -1,7 +1,5 @@
-﻿using HealthSystemApp.Data;
-using HealthSystemApp.Interfaces;
+﻿using HealthSystemApp.Interfaces;
 using HealthSystemApp.Models.Domain;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -12,12 +10,11 @@ namespace HealthSystemApp.Repositories
     public class TokenRepository : IToken
     {
         private readonly IConfiguration configuration;
-        private readonly HealthSystemAuthDbContext healthSystemAuthDb;
+       
 
-        public TokenRepository(IConfiguration configuration,HealthSystemAuthDbContext healthSystemAuthDb)
+        public TokenRepository(IConfiguration configuration)
         {
             this.configuration = configuration;
-            this.healthSystemAuthDb = healthSystemAuthDb;
         }
         public string CreateJWTToken(ApplicationUser user, List<string> roles, List<Guid> claimedIds)
         {
