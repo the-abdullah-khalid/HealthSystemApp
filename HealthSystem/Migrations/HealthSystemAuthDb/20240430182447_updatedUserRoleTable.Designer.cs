@@ -4,6 +4,7 @@ using HealthSystemApp.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HealthSystemApp.Migrations.HealthSystemAuthDb
 {
     [DbContext(typeof(HealthSystemAuthDbContext))]
-    partial class HealthSystemAuthDbContextModelSnapshot : ModelSnapshot
+    [Migration("20240430182447_updatedUserRoleTable")]
+    partial class updatedUserRoleTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -108,7 +111,7 @@ namespace HealthSystemApp.Migrations.HealthSystemAuthDb
                     b.Property<Guid>("ClaimedId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.HasKey("UserId", "RoleId", "ClaimedId");
+                    b.HasKey("UserId", "RoleId");
 
                     b.HasIndex("RoleId");
 
@@ -144,29 +147,29 @@ namespace HealthSystemApp.Migrations.HealthSystemAuthDb
                     b.HasData(
                         new
                         {
-                            Id = "4e423c78-d157-4e3e-af1b-a12ad46355ba",
-                            ConcurrencyStamp = "4e423c78-d157-4e3e-af1b-a12ad46355ba",
+                            Id = "56961fdf-1ab9-489d-8605-bba9bc09cb7e",
+                            ConcurrencyStamp = "56961fdf-1ab9-489d-8605-bba9bc09cb7e",
                             Name = "Administrator",
                             NormalizedName = "ADMINISTRATOR"
                         },
                         new
                         {
-                            Id = "e793c8e2-8c07-443e-b8dd-e2ef2ee3a9a6",
-                            ConcurrencyStamp = "e793c8e2-8c07-443e-b8dd-e2ef2ee3a9a6",
+                            Id = "1f7f4c61-fe87-4de0-a240-2adba1562f4f",
+                            ConcurrencyStamp = "1f7f4c61-fe87-4de0-a240-2adba1562f4f",
                             Name = "HealthSystemAdmin",
                             NormalizedName = "HEALTHSYSTEMADMIN"
                         },
                         new
                         {
-                            Id = "f893dc57-9fcc-46b1-a013-4c01988ce57a",
-                            ConcurrencyStamp = "f893dc57-9fcc-46b1-a013-4c01988ce57a",
+                            Id = "0a7211e6-6e46-4c5e-bb98-83fd7f346514",
+                            ConcurrencyStamp = "0a7211e6-6e46-4c5e-bb98-83fd7f346514",
                             Name = "RegionAdmin",
                             NormalizedName = "REGIONADMIN"
                         },
                         new
                         {
-                            Id = "b3d427c9-e0a3-41b1-b16b-b48ee9ca4839",
-                            ConcurrencyStamp = "b3d427c9-e0a3-41b1-b16b-b48ee9ca4839",
+                            Id = "b129d08c-12f4-4da8-b859-2438f34fb852",
+                            ConcurrencyStamp = "b129d08c-12f4-4da8-b859-2438f34fb852",
                             Name = "OrganizationAdmin",
                             NormalizedName = "ORGANIZATIONADMIN"
                         });

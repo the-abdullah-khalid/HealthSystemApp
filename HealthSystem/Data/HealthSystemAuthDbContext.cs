@@ -6,26 +6,25 @@ using System.Reflection.Emit;
 
 namespace HealthSystemApp.Data
 {
-    public class HealthSystemAuthDbContext: IdentityDbContext<ApplicationUser>
+    public class HealthSystemAuthDbContext: IdentityDbContext<ApplicationUser, IdentityRole, string, IdentityUserClaim<string>, ApplicationUserRole, IdentityUserLogin<string>, IdentityRoleClaim<string>, IdentityUserToken<string>>
     {
         public HealthSystemAuthDbContext(DbContextOptions<HealthSystemAuthDbContext> options) : base(options)
         {
 
         }
-
-        //public DbSet<ApplicationUser> applicationUsers { get; set; }
         protected override void OnModelCreating(ModelBuilder builder)
         {
             builder.HasDefaultSchema("authDB");
-
-
             base.OnModelCreating(builder);
+
+            builder.Entity<ApplicationUserRole>()
+            .HasKey(c => new { c.UserId, c.RoleId, c.ClaimedId });
+
+
             var administratorRoleId = Guid.NewGuid().ToString();
             var healthSystemAdminRoleId = Guid.NewGuid().ToString();
             var regionAdminRoleId = Guid.NewGuid().ToString();
             var orgAdminRoleId = Guid.NewGuid().ToString();
-
-
             var roles = new List<IdentityRole>
             {
 

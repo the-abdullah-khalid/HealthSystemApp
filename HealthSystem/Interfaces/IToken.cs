@@ -5,6 +5,6 @@ namespace HealthSystemApp.Interfaces
 {
     public interface IToken
     {
-        string CreateJWTToken(ApplicationUser user, List<string> roles);
+        string CreateJWTToken(ApplicationUser user, List<string> roles,List<Guid> claimedIds);
     }
 }

@@ -1,9 +1,11 @@
-﻿using HealthSystemApp.DTOs.AuthenticationDTOs;
+﻿using HealthSystemApp.Data;
+using HealthSystemApp.DTOs.AuthenticationDTOs;
 using HealthSystemApp.Interfaces;
 using HealthSystemApp.Models.Domain;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace HealthSystemApp.Controllers
 {
@@ -14,12 +16,14 @@ namespace HealthSystemApp.Controllers
         private readonly UserManager<ApplicationUser> userManager;
         private readonly IToken tokenRepository;
         private readonly RoleManager<IdentityRole> roleManager;
+        private readonly HealthSystemAuthDbContext healthSystemAuthDb;
 
-        public AuthenticationController(UserManager<ApplicationUser> userManager,IToken tokenRepository, RoleManager<IdentityRole> roleManager)
+        public AuthenticationController(UserManager<ApplicationUser> userManager,IToken tokenRepository, RoleManager<IdentityRole> roleManager,HealthSystemAuthDbContext healthSystemAuthDb)
         {
             this.userManager = userManager;
             this.tokenRepository = tokenRepository;
             this.roleManager = roleManager;
+            this.healthSystemAuthDb = healthSystemAuthDb;
         }
 
 
@@ -27,18 +31,15 @@ namespace HealthSystemApp.Controllers
         [HttpPost]
         [Route("Register")]
         //[SkipAuthorizationMiddlewareAttribute]
-        [Authorize(Policy = "AdministratorOrHealthSystemAdminOrHealthRegionAdmin")]
+        //[Authorize(Policy = "AdministratorOrHealthSystemAdminOrHealthRegionAdmin")]
         public async Task<IActionResult> Register([FromBody] RegisterRequestDTO registerRequestDto)
         {
-            if (registerRequestDto.Roles != null && registerRequestDto.Roles.Any())
+            if (registerRequestDto.Role != null && registerRequestDto.Role.Any())
             {
-                foreach (var role in registerRequestDto.Roles)
+                if (!await roleManager.RoleExistsAsync(registerRequestDto.Role))
                 {
-                    if (!await roleManager.RoleExistsAsync(role))
-                    {
-                        // Role doesn't exist, return BadRequest
-                        return BadRequest($"Role '{role}' is invalid.");
-                    }
+                    // Role doesn't exist, return BadRequest
+                    return BadRequest($"Role '{registerRequestDto.Role}' is invalid.");
                 }
             }
 
@@ -46,26 +47,33 @@ namespace HealthSystemApp.Controllers
             {
                 UserName = registerRequestDto.Username,
                 Email = registerRequestDto.Username,
-                HealthSystemId = registerRequestDto.HealthSystemId,
-                HealthRegionId = registerRequestDto.HealthRegionId,
-                OrganizationId = registerRequestDto.OrganizationId,
-                
             };
 
             var identityResult = await userManager.CreateAsync(identityUser, registerRequestDto.Password);
 
             if (identityResult.Succeeded)
             {
-                // Add roles to this User
-                if (registerRequestDto.Roles != null && registerRequestDto.Roles.Any())
-                {
-                    identityResult = await userManager.AddToRolesAsync(identityUser, registerRequestDto.Roles);
+                //get user id
+                var userId = identityUser.Id;
+                //get role id
+                var role = await healthSystemAuthDb.Roles.FirstOrDefaultAsync(r => r.Name == registerRequestDto.Role);
+                var roleId = role.Id;
 
-                    if (identityResult.Succeeded)
-                    {
-                        return Ok("User is registered successfully! Please login.");
-                    }
+                var userRoleClaim = new ApplicationUserRole
+                {
+                    UserId = userId,
+                    RoleId = roleId,
+                    ClaimedId = registerRequestDto.ClaimId
+                };
+
+                // Add roles to this User
+                var roleAdditionResult = await healthSystemAuthDb.UserRoles.AddAsync(userRoleClaim);
+                if (roleAdditionResult.State == EntityState.Added)
+                {
+                    await healthSystemAuthDb.SaveChangesAsync();
+                    return Ok("User is created and role is assigned successfully.");
                 }
+
             }
             return BadRequest("Something went wrong,Please try Again");
         }
@@ -87,18 +95,39 @@ namespace HealthSystemApp.Controllers
                     // Get Roles for this user
                     var roles = await userManager.GetRolesAsync(user);
 
-                    if (roles != null)
+                    if (roles != null && roles.Any())
                     {
-                        // Create Token
+                        var roleName = roles.First();
+                        var role = await healthSystemAuthDb.Roles.FirstOrDefaultAsync(r => r.Name == roleName);
+                        var roleId = role.Id;
 
-                        var jwtToken = tokenRepository.CreateJWTToken(user, roles.ToList());
 
-                        var response = new LoginResponseDTO
+                        //get claimed id/s
+                        var claimedIds = await healthSystemAuthDb.UserRoles
+                        .Where(ur => ur.UserId == user.Id)
+                        .Select(ur => ur.ClaimedId)
+                        .ToListAsync();
+
+                        if (claimedIds != null && claimedIds.Any())
                         {
-                            JwtToken = jwtToken
-                        };
+                            // Create Token
+                            var jwtToken = tokenRepository.CreateJWTToken(user, roles.ToList(), claimedIds);
+                            var response = new LoginResponseDTO
+                            {
+                                JwtToken = jwtToken
+                            };
 
-                        return Ok(response);
+                            return Ok(response);
+                        }
+                        else
+                        {
+                            return BadRequest("Username & password are correct,but there are no claims present");
+                        }
+
+                    }
+                    else
+                    {
+                        return BadRequest("Username & password are correct,but there is no role assigned");
                     }
                 }
             }

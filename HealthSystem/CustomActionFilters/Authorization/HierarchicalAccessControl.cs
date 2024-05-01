@@ -29,7 +29,7 @@ namespace HealthSystemApp.CustomActionFilters.Authorization
 
         private async Task<bool> IsAuthorizedForCreatingNewUser(string claimedId, RegisterRequestDTO registerRequestDTO)
         {
-            if (registerRequestDTO.Roles.Contains("RegionAdmin"))
+            if (registerRequestDTO.Role.Contains("RegionAdmin"))
             {
                 var HsID = await healthSystemDb.healthSystemHealthRegions.FindAsync(registerRequestDTO.HealthRegionId, Guid.Parse(claimedId));
                 if (HsID != null && HsID.HealthSystemId.ToString() == claimedId)
@@ -37,7 +37,7 @@ namespace HealthSystemApp.CustomActionFilters.Authorization
                     return true;
                 }
             }
-            else if ((registerRequestDTO.Roles.Contains("OrganizationAdmin")))
+            else if ((registerRequestDTO.Role.Contains("OrganizationAdmin")))
             {
                 var HrID = await healthSystemDb.healthRegionOrganizations.FirstOrDefaultAsync(org => org.OrganizationId == registerRequestDTO.OrganizationId);
                 if(HrID!=null)
@@ -75,6 +75,8 @@ namespace HealthSystemApp.CustomActionFilters.Authorization
             }
 
             var userRoles = context.User.FindAll(ClaimTypes.Role).Select(c => c.Value).ToList();
+            var claimedIds = context.User.FindAll("ClaimedId").Select(c => c.Value).ToList();
+
             var healthSystemIdClaim = context.User.FindFirst("HealthSystemId")?.Value;
             var healthRegionIdClaim = context.User.FindFirst("HealthRegionId")?.Value;
             var organizationIdClaim = context.User.FindFirst("OrganizationId")?.Value;
