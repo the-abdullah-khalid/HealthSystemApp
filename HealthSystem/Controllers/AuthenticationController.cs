@@ -53,27 +53,35 @@ namespace HealthSystemApp.Controllers
 
             if (identityResult.Succeeded)
             {
+                bool allAdditionsSuccessful = true;
+
                 //get user id
                 var userId = identityUser.Id;
                 //get role id
                 var role = await healthSystemAuthDb.Roles.FirstOrDefaultAsync(r => r.Name == registerRequestDto.Role);
                 var roleId = role.Id;
 
-                var userRoleClaim = new ApplicationUserRole
+                // Iterate over each ClaimedId and add a separate entry for each one
+                foreach (var claimedId in registerRequestDto.ClaimIds)
                 {
-                    UserId = userId,
-                    RoleId = roleId,
-                    ClaimedId = registerRequestDto.ClaimId
-                };
-
-                // Add roles to this User
-                var roleAdditionResult = await healthSystemAuthDb.UserRoles.AddAsync(userRoleClaim);
-                if (roleAdditionResult.State == EntityState.Added)
+                    var userRoleClaim = new ApplicationUserRole
+                    {
+                        UserId = userId,
+                        RoleId = roleId,
+                        ClaimedId = claimedId
+                    };
+                    var roleAdditionResult = await healthSystemAuthDb.UserRoles.AddAsync(userRoleClaim);
+                    if (roleAdditionResult.State != EntityState.Added)
+                    {
+                        allAdditionsSuccessful = false;
+                        break;
+                    }
+                }
+                if (allAdditionsSuccessful)
                 {
                     await healthSystemAuthDb.SaveChangesAsync();
                     return Ok("User is created and role is assigned successfully.");
                 }
-
             }
             return BadRequest("Something went wrong,Please try Again");
         }

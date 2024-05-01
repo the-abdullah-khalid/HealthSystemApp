@@ -16,7 +16,7 @@ namespace HealthSystemApp.DTOs.AuthenticationDTOs
         public string Role { get; set; }
 
         [Required]
-        public Guid ClaimId { get; set; } // ID of the Health System or Region Or Organization, the user will belong to
+        public List<Guid> ClaimIds { get; set; } // ID of the Health System or Region Or Organization, the user will belong to
 
     }
 }

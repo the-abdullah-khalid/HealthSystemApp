@@ -21,47 +21,6 @@ namespace HealthSystemApp.CustomActionFilters.Authorization
             this.httpContextAccessor = httpContextAccessor;
             this.healthSystemDb = healthSystemDb;
         }
-
-        private bool IsAuthorizedForHealthSystemRegionOrganization(string claimedId, string requestedRouteId)
-        {
-            return claimedId == requestedRouteId;
-        }
-
-        private async Task<bool> IsAuthorizedForCreatingNewUser(string claimedId, RegisterRequestDTO registerRequestDTO)
-        {
-            if (registerRequestDTO.Role.Contains("RegionAdmin"))
-            {
-                var HsID = await healthSystemDb.healthSystemHealthRegions.FindAsync(registerRequestDTO.ClaimId, Guid.Parse(claimedId));
-                if (HsID != null && HsID.HealthSystemId.ToString() == claimedId)
-                {
-                    return true;
-                }
-            }
-            else if ((registerRequestDTO.Role.Contains("OrganizationAdmin")))
-            {
-                var HrID = await healthSystemDb.healthRegionOrganizations.FirstOrDefaultAsync(org => org.OrganizationId == registerRequestDTO.ClaimId);
-                if(HrID!=null)
-                {
-                    if (HrID.HealthRegionId.ToString() == claimedId)
-                    {
-                        return true;
-                    }
-                    else
-                    {
-                        var HsID = await healthSystemDb.healthSystemHealthRegions.FindAsync(HrID.HealthRegionId, Guid.Parse(claimedId));
-                        if (HsID != null)
-                        {
-                            return true;
-                        }
-                    }
-                   
-                }
-            }
-
-            return false;
-        }
-
-
         protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context, RoleRequirement requirement)
         {
             httpContextAccessor.HttpContext.Request.EnableBuffering();
@@ -75,7 +34,6 @@ namespace HealthSystemApp.CustomActionFilters.Authorization
             }
 
             var userRoles = context.User.FindAll(ClaimTypes.Role).Select(c => c.Value).ToList();
-            var claimedIds = context.User.FindAll("ClaimedId").Select(c => c.Value).ToList();
 
 
 
@@ -88,6 +46,7 @@ namespace HealthSystemApp.CustomActionFilters.Authorization
                 return;
             }
 
+            var claimedIds = context.User.FindAll("ClaimedId").Select(c => c.Value).ToList();
 
             if (userRoles.Contains("Administrator"))
             {
@@ -109,17 +68,24 @@ namespace HealthSystemApp.CustomActionFilters.Authorization
                 {
                     foreach (var claimedId in claimedIds)
                     {
-                        if (await IsAuthorizedForCreatingNewUser(claimedId, registerRequestDto))
+                        if (await IsAuthorizedForCreatingNewHealthRegionUser(claimedId, registerRequestDto))
                         {
                             context.Succeed(requirement);
                             await Task.CompletedTask;
                             return;
                         }
+                        else if (await IsHSAdminAuthorizedForCreatingNewOrganizationUser(claimedId, registerRequestDto))
+                        {
+                            context.Succeed(requirement);
+                            await Task.CompletedTask;
+                            return;
+                        }
+
                     }
                 }
-                
+
                 //Check if the user has access to the requested Health System
-                foreach(var claimedId in claimedIds)
+                foreach (var claimedId in claimedIds)
                 {
                     if (IsAuthorizedForHealthSystemRegionOrganization(claimedId, IdFromRoute))
                     {
@@ -182,9 +148,9 @@ namespace HealthSystemApp.CustomActionFilters.Authorization
                 {
                     foreach (var claimedId in claimedIds)
                     {
-                        if (await IsAuthorizedForCreatingNewUser(claimedId, registerRequestDto))
+                        if (await IsHRAdminAuthorizedForCreatingNewOrganizationUser(claimedId, registerRequestDto))
                         {
-                            context.Succeed(requirement); // User doesn't have any of the required roles, deny access
+                            context.Succeed(requirement);
                             await Task.CompletedTask;
                             return;
                         }
@@ -243,5 +209,77 @@ namespace HealthSystemApp.CustomActionFilters.Authorization
             await Task.CompletedTask;
             return;
         }
+        private bool IsAuthorizedForHealthSystemRegionOrganization(string claimedId, string requestedRouteId)
+        {
+            return claimedId == requestedRouteId;
+        }
+
+        private async Task<bool> IsAuthorizedForCreatingNewHealthRegionUser(string claimedId, RegisterRequestDTO registerRequestDTO)
+        {
+            if (registerRequestDTO.Role.Contains("RegionAdmin"))
+            {
+                foreach (var claimId in registerRequestDTO.ClaimIds)
+                {
+                    var HsID = await healthSystemDb.healthSystemHealthRegions.FindAsync(claimId, Guid.Parse(claimedId));
+                    if (HsID == null)
+                    {
+                        return false;
+                    }
+                }
+                return true;
+            }
+            return false;
+        }
+
+        private async Task<bool> IsHSAdminAuthorizedForCreatingNewOrganizationUser(string claimedId, RegisterRequestDTO registerRequestDTO)
+        {
+            if ((registerRequestDTO.Role.Contains("OrganizationAdmin")))
+            {
+                foreach (var claimId in registerRequestDTO.ClaimIds)
+                {
+                    var HrID = await healthSystemDb.healthRegionOrganizations.FirstOrDefaultAsync(org => org.OrganizationId == claimId);
+                    if (HrID == null)
+                    {
+                        return false;
+                    }
+
+                    var HsID = await healthSystemDb.healthSystemHealthRegions.FindAsync(HrID.HealthRegionId, Guid.Parse(claimedId));
+                    if (HsID == null)
+                    {
+                        return false;
+                    }
+
+                }
+                return true;
+            }
+
+
+            return false;
+        }
+
+        private async Task<bool> IsHRAdminAuthorizedForCreatingNewOrganizationUser(string claimedId, RegisterRequestDTO registerRequestDTO)
+        {
+            if ((registerRequestDTO.Role.Contains("OrganizationAdmin")))
+            {
+
+                foreach (var claimId in registerRequestDTO.ClaimIds)
+                {
+                    var HrID = await healthSystemDb.healthRegionOrganizations.FirstOrDefaultAsync(org => org.OrganizationId == claimId);
+                    if (HrID == null)
+                    {
+                        return false;
+                    }
+
+                    if (HrID.HealthRegionId.ToString() != claimedId)
+                    {
+                        return false;
+                    }
+                }
+                return true;
+            }
+            return false;
+        }
+
+      
     }
 }
