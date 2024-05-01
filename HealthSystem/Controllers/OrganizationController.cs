@@ -29,6 +29,11 @@ namespace HealthSystemApp.Controllers
             var organization= mapper.Map<Organization>(addOrganizationDTO);
 
             organization=await organizationRepository.Create(organization, addOrganizationDTO.healthRegionId);
+            if (organization == null)
+            {
+                return NotFound("Health Region Id entered doesnt exist");
+            }
+
             var orgDto=mapper.Map<GetOrganizationDTO>(organization);
 
             string json = JsonConvert.SerializeObject(orgDto, Newtonsoft.Json.Formatting.Indented, new JsonSerializerSettings

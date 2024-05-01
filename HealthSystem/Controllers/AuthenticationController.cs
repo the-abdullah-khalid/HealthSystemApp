@@ -31,7 +31,7 @@ namespace HealthSystemApp.Controllers
         [HttpPost]
         [Route("Register")]
         //[SkipAuthorizationMiddlewareAttribute]
-        //[Authorize(Policy = "AdministratorOrHealthSystemAdminOrHealthRegionAdmin")]
+        [Authorize(Policy = "AdministratorOrHealthSystemAdminOrHealthRegionAdmin")]
         public async Task<IActionResult> Register([FromBody] RegisterRequestDTO registerRequestDto)
         {
             if (registerRequestDto.Role != null && registerRequestDto.Role.Any())

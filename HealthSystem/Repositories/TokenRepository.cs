@@ -24,10 +24,7 @@ namespace HealthSystemApp.Repositories
             // Create claims
             var claims = new List<Claim>();
             claims.Add(new Claim(ClaimTypes.Email, user.Email));
-            claims.Add(new Claim("HealthSystemId", user.HealthSystemId.ToString())); 
-            claims.Add(new Claim("HealthRegionId", user.HealthRegionId.ToString()));
-            claims.Add(new Claim("OrganizationId", user.OrganizationId.ToString())); 
-            
+
             foreach (var role in roles)
             {
                 claims.Add(new Claim(ClaimTypes.Role, role));
