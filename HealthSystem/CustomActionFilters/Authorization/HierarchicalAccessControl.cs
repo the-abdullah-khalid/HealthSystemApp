@@ -10,14 +10,12 @@ namespace HealthSystemApp.CustomActionFilters.Authorization
 {
     public class HierarchicalAccessControl : AuthorizationHandler<RoleRequirement>
     {
-        private readonly ILogger<HierarchicalAccessControl> logger;
         private readonly IHttpContextAccessor httpContextAccessor;
         private readonly HealthSystemDbContext healthSystemDb;
 
-        public HierarchicalAccessControl(ILogger<HierarchicalAccessControl> logger, IHttpContextAccessor httpContextAccessor,
+        public HierarchicalAccessControl(IHttpContextAccessor httpContextAccessor,
             HealthSystemDbContext healthSystemDb)
         {
-            this.logger = logger;
             this.httpContextAccessor = httpContextAccessor;
             this.healthSystemDb = healthSystemDb;
         }

@@ -22,7 +22,7 @@ namespace HealthSystemApp.Controllers
         }
 
         [HttpPost]
-        //[Authorize(Policy = "AdministratorOnly")]
+        [Authorize(Policy = "AdministratorOnly")]
         public async Task<IActionResult> AddOrganization([FromBody] AddOrganizationDTO addOrganizationDTO) 
         {
      

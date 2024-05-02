@@ -142,5 +142,84 @@ namespace HealthSystemApp.Controllers
 
             return BadRequest("Username or password incorrect,Please try Again");
         }
+
+
+        [HttpPut]
+        [Route("UpdateUserDetails/{_username}")]
+        //[Authorize(Policy = "AdministratorOrHealthSystemAdminOrHealthRegionAdmin")]
+        public async Task<IActionResult> UpdateUser([FromRoute] string _username, [FromBody] UpdateUserRequestDTO updateUserDto)
+        {
+            // Find the user by userId
+            var user = await userManager.FindByEmailAsync(_username);
+            if (user == null)
+            {
+                return NotFound($"User with username '{_username}' not found.");
+            }
+
+            var currentRole = await userManager.GetRolesAsync(user);
+            if (currentRole == null)
+            {
+                return BadRequest();
+            }
+
+            // Check if the role is being updated
+            if (updateUserDto.Role != null && updateUserDto.Role!=currentRole.First())
+            {
+                var userRoles = await healthSystemAuthDb.UserRoles
+                    .Where(ur => ur.UserId == user.Id)
+                    .ToListAsync();
+                healthSystemAuthDb.UserRoles.RemoveRange(userRoles);
+
+                // Get role ID for the new role
+                var newRoleId = await healthSystemAuthDb.Roles.Where(r => r.Name == updateUserDto.Role).Select(r => r.Id).FirstOrDefaultAsync();
+                if (newRoleId == null)
+                {
+                    return BadRequest($"Role '{updateUserDto.Role}' does not exist.");
+                }
+                foreach (var claimedId in updateUserDto.ClaimIds)
+                {
+                    var userRoleClaim = new ApplicationUserRole
+                    {
+                        UserId = user.Id,
+                        RoleId= newRoleId,
+                        ClaimedId = claimedId
+                    };
+                    await healthSystemAuthDb.UserRoles.AddAsync(userRoleClaim);
+                }
+
+            }
+            else//if the role is same as before
+            {
+                var currentRoleId = await healthSystemAuthDb.Roles
+                .Where(r => r.Name == currentRole.First())
+                .Select(r => r.Id)
+                .FirstOrDefaultAsync();
+                // Assign new claimedIds
+                foreach (var claimedId in updateUserDto.ClaimIds)
+                {
+                    var userRoleClaim = new ApplicationUserRole
+                    {
+                        UserId = user.Id,
+                        RoleId = currentRoleId, // Use existing role ID if role is not changed
+                        ClaimedId = claimedId
+                    };
+                    await healthSystemAuthDb.UserRoles.AddAsync(userRoleClaim);
+                }
+            }
+            // Update user details if necessary
+            if (!string.IsNullOrEmpty(updateUserDto.Username))
+            {
+                user.UserName = updateUserDto.Username;
+                user.Email = updateUserDto.Username;
+            }
+            if (!string.IsNullOrEmpty(updateUserDto.Password))
+            {
+                // Update password if provided
+                var token = await userManager.GeneratePasswordResetTokenAsync(user);
+                await userManager.ResetPasswordAsync(user, token, updateUserDto.Password);
+            }
+            await healthSystemAuthDb.SaveChangesAsync();
+            return Ok("User updated successfully.");
+        }
     }
 }
