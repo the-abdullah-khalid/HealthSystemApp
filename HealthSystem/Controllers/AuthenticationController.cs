@@ -89,7 +89,6 @@ namespace HealthSystemApp.Controllers
 
         [HttpPost]
         [Route("Login")]
-        //[SkipAuthorizationMiddlewareAttribute]
         public async Task<IActionResult> Login([FromBody] LoginRequestDTO loginRequestDto)
         {
             var user = await userManager.FindByEmailAsync(loginRequestDto.Username);
@@ -146,7 +145,6 @@ namespace HealthSystemApp.Controllers
 
         [HttpPut]
         [Route("UpdateUserDetails/{_username}")]
-        //[Authorize(Policy = "AdministratorOrHealthSystemAdminOrHealthRegionAdmin")]
         public async Task<IActionResult> UpdateUser([FromRoute] string _username, [FromBody] UpdateUserRequestDTO updateUserDto)
         {
             // Find the user by userId
