@@ -157,13 +157,8 @@ namespace HealthSystemApp.Controllers
             }
 
             var currentRole = await userManager.GetRolesAsync(user);
-            if (currentRole == null)
-            {
-                return BadRequest();
-            }
-
             // Check if the role is being updated
-            if (updateUserDto.Role != null && updateUserDto.Role!=currentRole.First())
+            if (updateUserDto.Role != null && currentRole != null && updateUserDto.Role!=currentRole.First())
             {
                 var userRoles = await healthSystemAuthDb.UserRoles
                     .Where(ur => ur.UserId == user.Id)
