@@ -2,6 +2,7 @@
 using HealthSystemApp.DTOs.AuthenticationDTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
 using System.Data;
 using System.Security.Claims;
@@ -12,12 +13,14 @@ namespace HealthSystemApp.CustomActionFilters.Authorization
     {
         private readonly IHttpContextAccessor httpContextAccessor;
         private readonly HealthSystemDbContext healthSystemDb;
+        private readonly HealthSystemAuthDbContext healthSystemAuthDbContext;
 
         public HierarchicalAccessControl(IHttpContextAccessor httpContextAccessor,
-            HealthSystemDbContext healthSystemDb)
+            HealthSystemDbContext healthSystemDb,HealthSystemAuthDbContext healthSystemAuthDbContext)
         {
             this.httpContextAccessor = httpContextAccessor;
             this.healthSystemDb = healthSystemDb;
+            this.healthSystemAuthDbContext = healthSystemAuthDbContext;
         }
         protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context, RoleRequirement requirement)
         {
@@ -33,9 +36,6 @@ namespace HealthSystemApp.CustomActionFilters.Authorization
 
             var userRoles = context.User.FindAll(ClaimTypes.Role).Select(c => c.Value).ToList();
 
-
-
-
             // Check if the user has the required role/s
             if (!userRoles.Any(role => requirement.AllowedRoles.Contains(role)))
             {
@@ -48,6 +48,9 @@ namespace HealthSystemApp.CustomActionFilters.Authorization
 
             if (userRoles.Contains("Administrator"))
             {
+                if (httpContextAccessor.HttpContext.Request.Body.CanSeek)
+                    httpContextAccessor.HttpContext.Request.Body.Position = 0;
+
                 context.Succeed(requirement);
                 await Task.CompletedTask;
                 return;
@@ -207,6 +210,33 @@ namespace HealthSystemApp.CustomActionFilters.Authorization
             await Task.CompletedTask;
             return;
         }
+        private async Task<bool> IsAuthorizedToEditUserDetails(Guid loggedInUserId,Guid UserId,UpdateUserRequestDTO updateUserRequestDTO)
+        {
+            if(updateUserRequestDTO.Role.Contains("HealthRegionAdmin"))
+            {
+                //in future i will make a stored procdeure for it
+                var userClaims =await healthSystemAuthDbContext
+                    .UserRoles
+                    .Where(user => user.UserId == UserId.ToString())
+                    .Select(user => user.ClaimedId)
+                    .ToListAsync();
+
+                ////if already present user claims=>healthsystem matches the healthsystemId of loggedInUser , then only
+                //List<Guid?> healthSystems = await  healthSystemDb
+                //     .healthSystemHealthRegions
+                //     .Where(region => userClaims.Contains(region.HealthRegionId))
+                //     .Select(region => region.HealthSystemId)
+                //     .Distinct()
+                //     .ToListAsync();
+                //if(healthSystems.Count=1)
+
+            }
+            else if(updateUserRequestDTO.Role.Contains("OrganizationAdmin"))
+            {
+                
+            }
+            return false;
+        }
         private bool IsAuthorizedForHealthSystemRegionOrganization(string claimedId, string requestedRouteId)
         {
             return claimedId == requestedRouteId;
@@ -235,23 +265,41 @@ namespace HealthSystemApp.CustomActionFilters.Authorization
             {
                 foreach (var claimId in registerRequestDTO.ClaimIds)
                 {
-                    var HrID = await healthSystemDb.healthRegionOrganizations.FirstOrDefaultAsync(org => org.OrganizationId == claimId);
+                    Guid? HrID = await healthSystemDb.healthRegionOrganizations
+                    .Where(org => org.OrganizationId == claimId)
+                    .Select(org => org.HealthRegionId)
+                    .FirstOrDefaultAsync();
+
                     if (HrID == null)
                     {
                         return false;
                     }
 
-                    var HsID = await healthSystemDb.healthSystemHealthRegions.FindAsync(HrID.HealthRegionId, Guid.Parse(claimedId));
+                    Guid? HsID = await healthSystemDb.healthSystemHealthRegions
+                        .Where(hr => hr.HealthRegionId == HrID)
+                        .Select(hs=>hs.HealthSystemId)
+                        .FirstOrDefaultAsync();
+
                     if (HsID == null)
                     {
                         return false;
                     }
+                }
 
+                //check whether the organization claims belong to the same region or not, even if the health system is same
+                var orgIds=registerRequestDTO.ClaimIds;
+                var healthRegions =healthSystemDb.healthRegionOrganizations
+                .Where(hro => orgIds.Contains(hro.OrganizationId))
+                .Select(hro => hro.HealthRegionId)
+                .Distinct()
+                .ToList();
+                if (healthRegions.Count != 1)
+                {
+                    Console.WriteLine("All organizations ids arent belonging to the same health region.");
+                    return false;
                 }
                 return true;
             }
-
-
             return false;
         }
 
@@ -262,13 +310,16 @@ namespace HealthSystemApp.CustomActionFilters.Authorization
 
                 foreach (var claimId in registerRequestDTO.ClaimIds)
                 {
-                    var HrID = await healthSystemDb.healthRegionOrganizations.FirstOrDefaultAsync(org => org.OrganizationId == claimId);
+                     Guid? HrID = await healthSystemDb.healthRegionOrganizations
+                     .Where(org => org.OrganizationId == claimId)
+                     .Select(org => org.HealthRegionId)
+                     .FirstOrDefaultAsync();
+
                     if (HrID == null)
                     {
                         return false;
                     }
-
-                    if (HrID.HealthRegionId.ToString() != claimedId)
+                    else if (HrID.ToString() != claimedId)
                     {
                         return false;
                     }

@@ -10,10 +10,10 @@ namespace HealthSystemApp.DTOs.AuthenticationDTOs
         [DataType(DataType.Password)]
         public string Password { get; set; }
 
-        [Required]
         public string Role { get; set; }
+        
+        public List<Guid> RevokedClaimIds { get; set; } // ID of the Health System or Region Or Organization, admin wants to revoke
 
-        [Required]
         public List<Guid> ClaimIds { get; set; } // ID of the Health System or Region Or Organization, the user will belong to
     }
 }

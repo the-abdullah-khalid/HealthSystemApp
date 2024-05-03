@@ -145,6 +145,7 @@ namespace HealthSystemApp.Controllers
 
         [HttpPut]
         [Route("UpdateUserDetails/{_username}")]
+        //[Authorize(Policy = "AdministratorOrHealthSystemAdminOrHealthRegionAdmin")]
         public async Task<IActionResult> UpdateUser([FromRoute] string _username, [FromBody] UpdateUserRequestDTO updateUserDto)
         {
             // Find the user by userId
